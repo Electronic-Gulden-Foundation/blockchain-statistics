@@ -62,19 +62,6 @@ def get_transactions_from(rpc_connection, blocks):
 
     return transactions
 
-def find_largest_transaction(transactions):
-    largest_tx = None
-    largest_value = 0
-
-    for tx in transactions:
-        total = calculate_total_vout(tx)
-
-        if total > largest_value:
-            largest_tx = tx
-            largest_value = total
-
-    return largest_tx
-
 def main(args):
     '''
     Get statistics about the blockchain
