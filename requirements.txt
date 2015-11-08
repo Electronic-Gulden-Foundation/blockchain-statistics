@@ -1,0 +1,2 @@
+python-bitcoinrpc >= 0.1
+
