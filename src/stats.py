@@ -3,11 +3,28 @@ import time
 import resource
 
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+from operator import itemgetter
+
+def add_block_times_to_blocks(blocks):
+    prev = None
+    result = list()
+
+    # Ensure blocks ordered by time
+    blocks = sorted(blocks, key=itemgetter('time'))
+
+    for block in blocks:
+        if prev is not None:
+            block['generation_time'] = block['time'] - prev['time']
+            result.append(block)
+
+        prev = block
+
+    return result
 
 def calculate_total_vout(transaction):
     total = 0
 
-    for vout in transaction['vout']:
+    for vout in transaction['vout'][1:]:
         total += vout['value']
 
     return total
@@ -65,16 +82,20 @@ def main(args):
     start_time = time.time()
 
     try:
+        # Create the connection
         rpc_connection = get_rpc_connection(
                 args.user, args.password, args.host, args.port)
+        # Test the connection
+        rpc_connection.getinfo()
 
         print("Connected to daemon")
     except:
-        print("Something went wrong while trying to establish connection:")
+        print("Something went wrong while trying to establish connection:\n")
         raise
 
     print("Collecting blocks since %d"%(args.since))
     blocks = get_block_info_from(rpc_connection, args.since)
+    blocks = add_block_times_to_blocks(blocks)
     print("Found %d blocks"%(len(blocks)))
 
     print("Collecting transaction data from blocks")
@@ -87,17 +108,34 @@ def main(args):
 
     transactions_by_value = sorted(transactions, key=calculate_total_vout
             , reverse=True)
+    blocks_by_generation_time = sorted(blocks,
+            key=itemgetter('generation_time'), reverse=True)
+
+    organic_transaction_value = 0
+    for tx in transactions:
+        organic_transaction_value += calculate_total_vout(tx)
 
     print("") # Print empty line
     print(" --- BLOCKS ---")
     print("Total blocks found:             %d"%(len(blocks)))
     print("Average block time:             %d seconds"%(average_block_time))
     print("Average transactions per block: %f"%(average_tx_per_block))
+    print("Top 10 longest generation time:")
+
+    for block in blocks_by_generation_time[:10]:
+        print("    %d %s"%(block['generation_time'], block['hash']))
+
+    print("Top 10 smallest generation time:")
+
+    for block in blocks_by_generation_time[-10:]:
+        print("    %d %s"%(block['generation_time'], block['hash']))
 
     print("") # Print empty line
     print(" --- TRANSACTIONS ---")
-    print("Total transactions: %d"%(len(transactions)))
-    print("Top 10 transactions:")
+    print("Total transactions:        %d"%(len(transactions)))
+    print("Organic transactions:      %d"%(len(transactions) - len(blocks)))
+    print("Organic transaction value: %f"%(organic_transaction_value))
+    print("Top 10 transactions (first vout value filtered):")
 
     for transaction in transactions_by_value[:10]:
         print("    %f %s"
