@@ -100,6 +100,9 @@ def main(args):
 
     organic_transaction_value = 0
     for tx in transactions:
+        if 'coinbase' in tx['vin'][0]:
+            continue
+
         organic_transaction_value += calculate_total_vout(tx)
 
     print("") # Print empty line
