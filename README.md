@@ -5,7 +5,7 @@ Scripts for extracting various statistics out of the blockchain
 
 Install virtualenv: `apt-get install virtualenv`
 
-Create a virtualenv, e.g. `virtualenv .venv`
+Create a virtualenv, e.g. `virtualenv .venv` and enter it by `source .venv/bin/activate`
 
 Then install dependencies: `pip install -r requirements.txt`
 
